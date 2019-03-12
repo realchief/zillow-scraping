@@ -21,7 +21,7 @@ class SiteProductItem(Item):
 
 
 class ZillowScraper (scrapy.Spider):
-    name = "scrapingdata"
+    name = "scrapingdata-old"
     allowed_domains = ['www.zillow.com']
     DOMAIN_URL = 'https://www.zillow.com'
     START_URL = 'https://www.zillow.com/'
@@ -77,12 +77,9 @@ class ZillowScraper (scrapy.Spider):
 
     def parse_category(self, response):
 
-        # for zip_code in self.ZIP_CODE_LIST:
-        #     category_link = 'https://www.zillow.com/homes/{zip_code}_rb/13_zm/'.format(zip_code=zip_code)
-        #     yield Request(url=category_link, callback=self.get_zpid, dont_filter=True, headers=self.headers)
-        zip_code = self.ZIP_CODE
-        category_link = 'https://www.zillow.com/homes/{zip_code}_rb/13_zm/'.format(zip_code=zip_code)
-        yield Request(url=category_link, callback=self.get_zpid, dont_filter=True, headers=self.headers)
+        for zip_code in self.ZIP_CODE_LIST:
+            category_link = 'https://www.zillow.com/homes/{zip_code}_rb/13_zm/'.format(zip_code=zip_code)
+            yield Request(url=category_link, callback=self.get_zpid, dont_filter=True, headers=self.headers)
 
     def get_zpid(self, response):
 
@@ -215,25 +212,23 @@ class ZillowScraper (scrapy.Spider):
         sch = '100111'
         p = '1'
 
-        # sw_lat = re.search('"sw": { "lat": (.*?),', response.body)
-        # if sw_lat:
-        #     sw_lat = sw_lat.group(1).replace('\\', '').replace('.', '').replace(' ', '')
-        #
-        # sw_lon = re.search('"lon": (.*?)},', response.body)
-        # if sw_lon:
-        #     sw_lon = sw_lon.group(1).replace('\\', '').replace('.', '').replace(' ', '')
-        #
-        # ne_lat = re.search('"ne": { "lat": (.*?),', response.body)
-        # if ne_lat:
-        #     ne_lat = ne_lat.group(1).replace('\\', '').replace('.', '').replace(' ', '')
-        #
-        # ne_lon = re.search('"lon": (.*?)},', response.body)
-        # if ne_lon:
-        #     ne_lon = ne_lon.group(1).replace('\\', '').replace('.', '').replace(' ', '')
-        #
-        # rect = sw_lon + ',' + sw_lat + ',' + ne_lon + ',' + ne_lat
+        sw_lat = re.search('"sw": { "lat": (.*?),', response.body)
+        if sw_lat:
+            sw_lat = sw_lat.group(1).replace('\\', '').replace('.', '').replace(' ', '')
 
-        rect = '-75188542,39882770,-75115328,39940968'
+        sw_lon = re.search('"lon": (.*?)},', response.body)
+        if sw_lon:
+            sw_lon = sw_lon.group(1).replace('\\', '').replace('.', '').replace(' ', '')
+
+        ne_lat = re.search('"ne": { "lat": (.*?),', response.body)
+        if ne_lat:
+            ne_lat = ne_lat.group(1).replace('\\', '').replace('.', '').replace(' ', '')
+
+        ne_lon = re.search('"lon": (.*?)},', response.body)
+        if ne_lon:
+            ne_lon = ne_lon.group(1).replace('\\', '').replace('.', '').replace(' ', '')
+
+        rect = sw_lon + ',' + sw_lat + ',' + ne_lon + ',' + ne_lat
 
         sort = re.search('"sort":"(.*?)",', response.body)
         if sort:
@@ -300,7 +295,6 @@ class ZillowScraper (scrapy.Spider):
                 dont_filter=True,
                 headers=zpid_headers
             )
-
 
     def parse_product(self, response):
 

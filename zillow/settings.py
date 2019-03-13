@@ -56,6 +56,13 @@ ROBOTSTXT_OBEY = True
 #    'zillow.middlewares.ZillowDownloaderMiddleware': 543,
 #}
 
+DOWNLOADER_MIDDLEWARES = {
+    'scrapy_crawlera.CrawleraMiddleware': 610
+}
+
+CRAWLERA_ENABLED = True
+CRAWLERA_APIKEY = '2ae48aae54c84bfe898e838cd566c211'
+
 # Enable or disable extensions
 # See https://doc.scrapy.org/en/latest/topics/extensions.html
 #EXTENSIONS = {

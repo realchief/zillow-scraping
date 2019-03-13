@@ -327,8 +327,9 @@ class ZillowScraper (scrapy.Spider):
             if bedrooms == 0:
                 crawl_enable = True
 
-        if crawl_enable:
-            yield product
+        # if crawl_enable:
+        #     yield product
+        yield product
 
     @staticmethod
     def _parse_ContactInfo(response):

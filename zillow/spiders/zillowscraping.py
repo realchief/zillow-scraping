@@ -19,6 +19,10 @@ class SiteProductItem(Item):
     Rent = Field()
     Number_of_Active_Listing = Field()
     Number_of_Bedrooms = Field()
+    Info_of_Days_Vacant = Field()
+    PhoneNumber = Field()
+    ZipCode = Field()
+    Email = Field()
 
 
 class ZillowScraper (scrapy.Spider):
@@ -32,8 +36,8 @@ class ZillowScraper (scrapy.Spider):
     LOCATION = 'Philadelphia'
     ZIP_CODE_LIST = ['19153', '19145', '19148', '19142', '19143', '19146', '19147', '19106', '19107', '19103', '19102',
                      '19104', '19130', '19123', '19125', '19122', '19121', '19132', '19133', '19134', '19129', '19140']
-    # ZIP_CODE = '19143'
-    USER_NAME = 'todor.dev000@gmail.com'
+    ZIP_CODE = '19122'
+    EMAIL = 'todor.dev000@gmail.com'
     PASSWORD = "password12345"
     # settings.overrides['ROBOTSTXT_OBEY'] = False
 
@@ -58,9 +62,10 @@ class ZillowScraper (scrapy.Spider):
                           formdata={
                               'ap': 'undefined',
                               'authToken': '',
-                              'email': self.USER_NAME,
+                              'email': self.EMAIL,
                               'password': self.PASSWORD
-                          }
+                          },
+                          meta=response.meta
                           )
 
     def check_login(self, response):
@@ -70,7 +75,8 @@ class ZillowScraper (scrapy.Spider):
             yield Request(url=self.START_URL,
                           callback=self.parse_category,
                           headers=self.headers,
-                          dont_filter=True
+                          dont_filter=True,
+                          meta=response.meta
                           )
         else:
             print ("login failed")
@@ -78,11 +84,16 @@ class ZillowScraper (scrapy.Spider):
     def parse_category(self, response):
 
         for zip_code in self.ZIP_CODE_LIST:
+            response.meta['zip_code'] = zip_code
             category_link = 'https://www.zillow.com/homes/{zip_code}_rb/13_zm/'.format(zip_code=zip_code)
-            yield Request(url=category_link, callback=self.get_zpid, dont_filter=True, headers=self.headers)
+            yield Request(url=category_link, callback=self.get_zpid, dont_filter=True, headers=self.headers,
+                          meta=response.meta)
+
         # zip_code = self.ZIP_CODE
+        # response.meta['zip_code'] = zip_code
         # category_link = 'https://www.zillow.com/homes/{zip_code}_rb/13_zm/'.format(zip_code=zip_code)
-        # yield Request(url=category_link, callback=self.get_zpid, dont_filter=True, headers=self.headers)
+        # yield Request(url=category_link, callback=self.get_zpid, dont_filter=True, headers=self.headers,
+        #               meta=response.meta)
 
     def get_zpid(self, response):
 
@@ -284,15 +295,25 @@ class ZillowScraper (scrapy.Spider):
                 body=json.dumps(zpid_data),
                 callback=self.parse_product,
                 dont_filter=True,
-                headers=zpid_headers
+                headers=zpid_headers,
+                meta=response.meta
             )
 
     def parse_product(self, response):
 
         product = SiteProductItem()
 
-        ContactInfo = self._parse_ContactInfo(response)
+        product['ZipCode'] = response.meta['zip_code']
+        product['Email'] = self.EMAIL
+
+        PhoneNumber = self._parse_phone_number(response)
+        product['PhoneNumber'] = PhoneNumber
+
+        ContactInfo = self._parse_contact_info(response)
         product['ContactInfo'] = ContactInfo
+
+        daysVacant = self._parse_days_vacant(response)
+        product['Info_of_Days_Vacant'] = daysVacant
 
         address = self._parse_address(response)
         product['Address'] = address
@@ -300,7 +321,7 @@ class ZillowScraper (scrapy.Spider):
         rent = self._parse_rent(response)
         product['Rent'] = rent
 
-        Number_of_Active_Listing = self._parse_Number_of_Active_Listing(response)
+        Number_of_Active_Listing = self._parse_number_of_active_listing(response)
         product['Number_of_Active_Listing'] = Number_of_Active_Listing
 
         json_content = json.loads(response.body)
@@ -326,13 +347,48 @@ class ZillowScraper (scrapy.Spider):
                 crawl_enable = True
             if bedrooms == 0:
                 crawl_enable = True
+            if bedrooms == '0':
+                crawl_enable = True
+        if not bedrooms:
+            crawl_enable = True
 
         if crawl_enable:
             yield product
-        # yield product
 
     @staticmethod
-    def _parse_ContactInfo(response):
+    def _parse_phone_number(response):
+
+        json_content = json.loads(response.body)
+        property_data = json_content['data']['property']
+        phone_number = None
+        if 'listingProvider' in property_data.keys():
+            phone_number = property_data['listingProvider']['phoneNumber']
+
+        return str(phone_number) if phone_number else None
+
+    @staticmethod
+    def _parse_days_vacant(response):
+
+        try:
+            json_content = json.loads(response.body)
+            property_data = json_content['data']['property']
+            daysVacant_info = None
+            if 'homeFacts' in property_data.keys():
+                daysVacant_info_list = property_data['homeFacts']['categoryDetails'][0]['categories'][0]['categoryFacts']
+                for index in range(0, len(daysVacant_info_list)):
+                    if 'ago' in daysVacant_info_list[index]['factValue']:
+                        if ('hour' in daysVacant_info_list[index]['factValue']) or ('minute' in daysVacant_info_list[index]['factValue']):
+                            daysVacant_info = '1 day ago'
+                        else:
+                            daysVacant_info = str(daysVacant_info_list[index]['factValue'])
+                    else:
+                        continue
+            return daysVacant_info if daysVacant_info else None
+        except:
+            pass
+
+    @staticmethod
+    def _parse_contact_info(response):
 
         json_content = json.loads(response.body)
         property_data = json_content['data']['property']
@@ -374,7 +430,7 @@ class ZillowScraper (scrapy.Spider):
         return str(price) if price else None
 
     @staticmethod
-    def _parse_Number_of_Active_Listing(response):
+    def _parse_number_of_active_listing(response):
 
         number_of_active_listing = '1'
         return number_of_active_listing

@@ -7,7 +7,7 @@
 ## Create Vritual Environment
 
 * `$ sudo apt-get install python-virtualenv`
-* `$ cd twitter_scraping`
+* `$ cd zillow_scraping`
 * `$ virtualenv venv`
 * `$ source venv/bin/activate`
 

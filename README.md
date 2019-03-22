@@ -19,5 +19,5 @@
 
 ## Run spiders
 
-* `$ cd twitter_scraping/spiders`
+* `$ cd zillow/spiders`
 * `$ scrapy crawl scrapingdata -o result.json`

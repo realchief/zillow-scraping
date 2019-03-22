@@ -20,4 +20,5 @@
 ## Run spiders
 
 * `$ cd zillow/spiders`
+* `$ scrapy crawl scrapingdata -o result.csv`
 * `$ scrapy crawl scrapingdata -o result.json`
